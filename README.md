@@ -6,7 +6,7 @@ This first version includes:
 
 - concurrent-ish crawl pipeline with bounded fan-out
 - asynchronous crawl job queue with status tracking
-- in-memory document store
+- pluggable document store with memory and PostgreSQL support
 - inverted index with BM25-style scoring
 - reranking with title and exact-phrase boosts
 - HTTP API for crawling and searching
@@ -68,6 +68,14 @@ When the AI service is running, search responses also include an `answer` field 
 
 1. Install Go 1.24 or newer.
 2. Run `go run ./cmd/api`.
+
+To use PostgreSQL persistence:
+
+```bash
+export ATLAS_STORAGE_DRIVER=postgres
+export ATLAS_DATABASE_URL=postgres://localhost:5432/atlas_search?sslmode=disable
+go run ./cmd/api
+```
 
 ### Python AI scaffold
 

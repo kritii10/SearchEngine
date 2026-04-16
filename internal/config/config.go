@@ -3,16 +3,20 @@ package config
 import "os"
 
 type Config struct {
-	Address   string
-	UserAgent string
-	AIBaseURL string
+	Address       string
+	UserAgent     string
+	AIBaseURL     string
+	DatabaseURL   string
+	StorageDriver string
 }
 
 func Load() Config {
 	return Config{
-		Address:   envOrDefault("ATLAS_ADDR", ":8080"),
-		UserAgent: envOrDefault("ATLAS_USER_AGENT", "AtlasSearchBot/0.1"),
-		AIBaseURL: envOrDefault("ATLAS_AI_BASE_URL", "http://127.0.0.1:8001"),
+		Address:       envOrDefault("ATLAS_ADDR", ":8080"),
+		UserAgent:     envOrDefault("ATLAS_USER_AGENT", "AtlasSearchBot/0.1"),
+		AIBaseURL:     envOrDefault("ATLAS_AI_BASE_URL", "http://127.0.0.1:8001"),
+		DatabaseURL:   os.Getenv("ATLAS_DATABASE_URL"),
+		StorageDriver: envOrDefault("ATLAS_STORAGE_DRIVER", "memory"),
 	}
 }
 

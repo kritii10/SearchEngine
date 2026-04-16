@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -17,8 +18,12 @@ import (
 func main() {
 	cfg := config.Load()
 
-	documentStore := store.NewMemoryStore()
+	documentStore := mustBuildStore(cfg)
 	searchIndex := index.New()
+	for _, doc := range documentStore.List() {
+		searchIndex.Add(doc)
+	}
+
 	fetcher := crawler.NewFetcher(&http.Client{
 		Timeout: 10 * time.Second,
 	}, cfg.UserAgent)
@@ -32,4 +37,27 @@ func main() {
 		log.Printf("server failed: %v", err)
 		os.Exit(1)
 	}
+}
+
+func mustBuildStore(cfg config.Config) store.DocumentStore {
+	if cfg.StorageDriver == "postgres" {
+		if cfg.DatabaseURL == "" {
+			log.Printf("ATLAS_STORAGE_DRIVER=postgres but ATLAS_DATABASE_URL is empty, falling back to memory store")
+			return store.NewMemoryStore()
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		documentStore, err := store.NewPostgresStore(ctx, cfg.DatabaseURL)
+		if err != nil {
+			log.Printf("postgres store unavailable: %v; falling back to memory store", err)
+			return store.NewMemoryStore()
+		}
+
+		log.Printf("using postgres document store")
+		return documentStore
+	}
+
+	return store.NewMemoryStore()
 }
