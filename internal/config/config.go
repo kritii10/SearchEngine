@@ -8,6 +8,8 @@ type Config struct {
 	AIBaseURL     string
 	DatabaseURL   string
 	StorageDriver string
+	RedisAddr     string
+	CacheDriver   string
 }
 
 func Load() Config {
@@ -17,6 +19,8 @@ func Load() Config {
 		AIBaseURL:     envOrDefault("ATLAS_AI_BASE_URL", "http://127.0.0.1:8001"),
 		DatabaseURL:   os.Getenv("ATLAS_DATABASE_URL"),
 		StorageDriver: envOrDefault("ATLAS_STORAGE_DRIVER", "memory"),
+		RedisAddr:     envOrDefault("ATLAS_REDIS_ADDR", "127.0.0.1:6379"),
+		CacheDriver:   envOrDefault("ATLAS_CACHE_DRIVER", "memory"),
 	}
 }
 

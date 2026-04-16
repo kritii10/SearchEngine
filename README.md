@@ -7,6 +7,7 @@ This first version includes:
 - concurrent-ish crawl pipeline with bounded fan-out
 - asynchronous crawl job queue with status tracking
 - pluggable document store with memory and PostgreSQL support
+- pluggable query cache with memory and Redis support
 - inverted index with BM25-style scoring
 - reranking with title and exact-phrase boosts
 - HTTP API for crawling and searching
@@ -77,6 +78,14 @@ export ATLAS_DATABASE_URL=postgres://localhost:5432/atlas_search?sslmode=disable
 go run ./cmd/api
 ```
 
+To use Redis query caching:
+
+```bash
+export ATLAS_CACHE_DRIVER=redis
+export ATLAS_REDIS_ADDR=127.0.0.1:6379
+go run ./cmd/api
+```
+
 ### Python AI scaffold
 
 1. Create a virtual environment.
@@ -85,8 +94,6 @@ go run ./cmd/api
 
 ## Next steps
 
-- add PostgreSQL-backed document storage
-- add Redis query caching
 - support recrawl scheduling and deduplication
-- connect search results to the AI summarization endpoint
 - add a simple frontend for result exploration
+- add result explanations and trust scoring

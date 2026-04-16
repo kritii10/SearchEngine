@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"atlas-search/internal/cache"
 	"atlas-search/internal/config"
 	"atlas-search/internal/crawler"
 	"atlas-search/internal/httpapi"
@@ -24,11 +25,12 @@ func main() {
 		searchIndex.Add(doc)
 	}
 
+	queryCache := mustBuildCache(cfg)
 	fetcher := crawler.NewFetcher(&http.Client{
 		Timeout: 10 * time.Second,
 	}, cfg.UserAgent)
 	summarizer := search.NewHTTPSummarizer(cfg.AIBaseURL)
-	service := search.NewServiceWithSummarizer(documentStore, searchIndex, fetcher, summarizer)
+	service := search.NewServiceWithDependencies(documentStore, searchIndex, fetcher, summarizer, queryCache)
 
 	server := httpapi.NewServer(cfg, service)
 
@@ -60,4 +62,22 @@ func mustBuildStore(cfg config.Config) store.DocumentStore {
 	}
 
 	return store.NewMemoryStore()
+}
+
+func mustBuildCache(cfg config.Config) cache.Cache {
+	if cfg.CacheDriver == "redis" {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		redisCache := cache.NewRedisCache(cfg.RedisAddr)
+		if err := redisCache.Ping(ctx); err != nil {
+			log.Printf("redis cache unavailable: %v; falling back to memory cache", err)
+			return cache.NewMemoryCache()
+		}
+
+		log.Printf("using redis query cache")
+		return redisCache
+	}
+
+	return cache.NewMemoryCache()
 }

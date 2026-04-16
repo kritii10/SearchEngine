@@ -2,6 +2,7 @@ package search
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"atlas-search/internal/cache"
 	"atlas-search/internal/index"
 	"atlas-search/internal/model"
 	"atlas-search/internal/store"
@@ -19,6 +21,7 @@ type Service struct {
 	index   *index.Index
 	fetcher Fetcher
 	summary Summarizer
+	cache   cache.Cache
 
 	jobQueue    chan string
 	jobsMu      sync.RWMutex
@@ -61,15 +64,20 @@ type CrawlJob struct {
 }
 
 func NewService(store store.DocumentStore, idx *index.Index, fetcher Fetcher) *Service {
-	return NewServiceWithSummarizer(store, idx, fetcher, nil)
+	return NewServiceWithDependencies(store, idx, fetcher, nil, nil)
 }
 
 func NewServiceWithSummarizer(store store.DocumentStore, idx *index.Index, fetcher Fetcher, summarizer Summarizer) *Service {
+	return NewServiceWithDependencies(store, idx, fetcher, summarizer, nil)
+}
+
+func NewServiceWithDependencies(store store.DocumentStore, idx *index.Index, fetcher Fetcher, summarizer Summarizer, queryCache cache.Cache) *Service {
 	service := &Service{
 		store:    store,
 		index:    idx,
 		fetcher:  fetcher,
 		summary:  summarizer,
+		cache:    queryCache,
 		jobQueue: make(chan string, 32),
 		jobs:     make(map[string]CrawlJob),
 	}
@@ -78,7 +86,12 @@ func NewServiceWithSummarizer(store store.DocumentStore, idx *index.Index, fetch
 }
 
 func (s *Service) Crawl(urls []string) (CrawlResponse, error) {
-	return s.executeCrawl(urls)
+	response, err := s.executeCrawl(urls)
+	if err != nil {
+		return CrawlResponse{}, err
+	}
+	s.invalidateSearchCache()
+	return response, nil
 }
 
 func (s *Service) EnqueueCrawl(urls []string) (CrawlJob, error) {
@@ -208,6 +221,25 @@ func (s *Service) SearchWithAnswer(ctx context.Context, query string, limit int)
 	if limit <= 0 {
 		limit = 10
 	}
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return SearchResponse{
+			Query:   query,
+			Count:   0,
+			Results: []model.SearchResult{},
+		}, nil
+	}
+
+	cacheKey := fmt.Sprintf("search:%s:%d", strings.ToLower(query), limit)
+	if s.cache != nil {
+		cached, ok, err := s.cache.Get(ctx, cacheKey)
+		if err == nil && ok {
+			var response SearchResponse
+			if err := json.Unmarshal([]byte(cached), &response); err == nil {
+				return response, nil
+			}
+		}
+	}
 
 	scored := s.index.Search(query)
 	documents := make(map[string]model.Document, len(scored))
@@ -252,6 +284,12 @@ func (s *Service) SearchWithAnswer(ctx context.Context, query string, limit int)
 		}
 	}
 
+	if s.cache != nil {
+		if payload, err := json.Marshal(response); err == nil {
+			_ = s.cache.Set(ctx, cacheKey, string(payload), 2*time.Minute)
+		}
+	}
+
 	return response, nil
 }
 
@@ -268,6 +306,8 @@ func (s *Service) runCrawlWorker() {
 			s.setJobFailed(jobID, err)
 			continue
 		}
+
+		s.invalidateSearchCache()
 
 		s.setJobCompleted(jobID, response)
 	}
@@ -417,6 +457,13 @@ func collectSnippets(results []model.SearchResult) []string {
 		}
 	}
 	return snippets
+}
+
+func (s *Service) invalidateSearchCache() {
+	if s.cache == nil {
+		return
+	}
+	_ = s.cache.DeleteByPrefix(context.Background(), "search:")
 }
 
 func normalizeURLs(urls []string) []string {
