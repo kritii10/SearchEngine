@@ -23,16 +23,18 @@ type ResultScore struct {
 }
 
 type Index struct {
-	mu         sync.RWMutex
-	postings   map[string][]Posting
-	docLengths map[string]int
-	docCount   int
+	mu           sync.RWMutex
+	postings     map[string][]Posting
+	docLengths   map[string]int
+	docTermFreqs map[string]map[string]int
+	docCount     int
 }
 
 func New() *Index {
 	return &Index{
-		postings:   make(map[string][]Posting),
-		docLengths: make(map[string]int),
+		postings:     make(map[string][]Posting),
+		docLengths:   make(map[string]int),
+		docTermFreqs: make(map[string]map[string]int),
 	}
 }
 
@@ -45,8 +47,16 @@ func (i *Index) Add(doc model.Document) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	i.docCount++
+	if previous, exists := i.docTermFreqs[doc.ID]; exists {
+		for term := range previous {
+			i.removePosting(term, doc.ID)
+		}
+	} else {
+		i.docCount++
+	}
+
 	i.docLengths[doc.ID] = len(doc.Terms)
+	i.docTermFreqs[doc.ID] = termFreqs
 	for term, freq := range termFreqs {
 		i.postings[term] = append(i.postings[term], Posting{
 			DocumentID: doc.ID,
@@ -107,6 +117,26 @@ func (i *Index) Search(query string) []ResultScore {
 	})
 
 	return results
+}
+
+func (i *Index) removePosting(term, documentID string) {
+	postings := i.postings[term]
+	if len(postings) == 0 {
+		return
+	}
+
+	filtered := postings[:0]
+	for _, posting := range postings {
+		if posting.DocumentID != documentID {
+			filtered = append(filtered, posting)
+		}
+	}
+
+	if len(filtered) == 0 {
+		delete(i.postings, term)
+		return
+	}
+	i.postings[term] = filtered
 }
 
 func Tokenize(content string) []string {

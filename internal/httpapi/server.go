@@ -3,6 +3,8 @@ package httpapi
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -16,6 +18,22 @@ type Server struct {
 
 func NewServer(cfg config.Config, service *search.Service) *Server {
 	mux := http.NewServeMux()
+	webDir := filepath.Join(".", "web")
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+
+		indexPath := filepath.Join(webDir, "index.html")
+		if _, err := os.Stat(indexPath); err != nil {
+			http.Error(w, "web UI not found", http.StatusNotFound)
+			return
+		}
+
+		http.ServeFile(w, r, indexPath)
+	})
 
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{

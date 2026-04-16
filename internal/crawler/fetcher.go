@@ -150,7 +150,7 @@ func isIgnoredElement(node *html.Node) bool {
 	}
 
 	switch node.Data {
-	case "script", "style", "noscript", "svg", "canvas", "iframe":
+	case "script", "style", "noscript", "svg", "canvas", "iframe", "nav", "footer", "aside", "form":
 		return true
 	}
 	return false
