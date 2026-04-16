@@ -1,0 +1,43 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "go test",
+      "type": "shell",
+      "command": "go test ./...",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "run api",
+      "type": "shell",
+      "command": "go run ./cmd/api",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "install ai deps",
+      "type": "shell",
+      "command": "python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt",
+      "options": {
+        "cwd": "${workspaceFolder}/ai"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "run ai",
+      "type": "shell",
+      "command": "source .venv/bin/activate && uvicorn app:app --reload --host 127.0.0.1 --port 8001",
+      "options": {
+        "cwd": "${workspaceFolder}/ai"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
+

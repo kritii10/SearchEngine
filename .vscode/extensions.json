@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "golang.Go",
+    "ms-python.python",
+    "ms-python.debugpy",
+    "ms-azuretools.vscode-docker"
+  ]
+}
+

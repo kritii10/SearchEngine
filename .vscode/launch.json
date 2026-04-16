@@ -1,0 +1,41 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Atlas Search API",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/api",
+      "envFile": "${workspaceFolder}/.env",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Atlas AI Service",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "app:app",
+        "--reload",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8001"
+      ],
+      "cwd": "${workspaceFolder}/ai",
+      "envFile": "${workspaceFolder}/.env",
+      "console": "integratedTerminal"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Atlas Search + AI",
+      "configurations": [
+        "Atlas Search API",
+        "Atlas AI Service"
+      ]
+    }
+  ]
+}
+

@@ -1,0 +1,11 @@
+{
+  "go.testFlags": [
+    "./..."
+  ],
+  "go.toolsManagement.autoUpdate": true,
+  "python.defaultInterpreterPath": "${workspaceFolder}/ai/.venv/bin/python",
+  "files.exclude": {
+    "**/__pycache__": true
+  }
+}
+

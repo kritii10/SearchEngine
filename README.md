@@ -65,6 +65,10 @@ When the AI service is running, search responses also include an `answer` field 
 
 ## Local setup
 
+1. Open `/Users/kriti_10/Documents/mini` in VS Code.
+2. Copy `.env.example` to `.env`.
+3. Use the VS Code launch configs in `.vscode/launch.json` to run the Go API, the AI service, or both together.
+
 ### Go API
 
 1. Install Go 1.24 or newer.
@@ -91,6 +95,21 @@ go run ./cmd/api
 1. Create a virtual environment.
 2. Install dependencies from `ai/requirements.txt`.
 3. Run `uvicorn app:app --reload --host 127.0.0.1 --port 8001` from the `ai` directory.
+
+### VS Code
+
+- `Atlas Search API`: starts the Go backend
+- `Atlas AI Service`: starts the Python FastAPI summarizer
+- `Atlas Search + AI`: launches both together
+- `Terminal > Run Task`: includes helpers for `go test`, API startup, and AI dependency install
+
+### Optional local services
+
+For PostgreSQL and Redis in development:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
 
 ## Next steps
 
