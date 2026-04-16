@@ -22,7 +22,8 @@ func main() {
 	fetcher := crawler.NewFetcher(&http.Client{
 		Timeout: 10 * time.Second,
 	}, cfg.UserAgent)
-	service := search.NewService(documentStore, searchIndex, fetcher)
+	summarizer := search.NewHTTPSummarizer(cfg.AIBaseURL)
+	service := search.NewServiceWithSummarizer(documentStore, searchIndex, fetcher, summarizer)
 
 	server := httpapi.NewServer(cfg, service)
 

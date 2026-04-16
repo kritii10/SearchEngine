@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -17,6 +18,7 @@ type Service struct {
 	store   store.DocumentStore
 	index   *index.Index
 	fetcher Fetcher
+	summary Summarizer
 
 	jobQueue    chan string
 	jobsMu      sync.RWMutex
@@ -59,10 +61,15 @@ type CrawlJob struct {
 }
 
 func NewService(store store.DocumentStore, idx *index.Index, fetcher Fetcher) *Service {
+	return NewServiceWithSummarizer(store, idx, fetcher, nil)
+}
+
+func NewServiceWithSummarizer(store store.DocumentStore, idx *index.Index, fetcher Fetcher, summarizer Summarizer) *Service {
 	service := &Service{
 		store:    store,
 		index:    idx,
 		fetcher:  fetcher,
+		summary:  summarizer,
 		jobQueue: make(chan string, 32),
 		jobs:     make(map[string]CrawlJob),
 	}
@@ -183,6 +190,21 @@ func (s *Service) executeCrawl(urls []string) (CrawlResponse, error) {
 }
 
 func (s *Service) Search(query string, limit int) ([]model.SearchResult, error) {
+	response, err := s.SearchWithAnswer(context.Background(), query, limit)
+	if err != nil {
+		return nil, err
+	}
+	return response.Results, nil
+}
+
+type SearchResponse struct {
+	Query   string               `json:"query"`
+	Count   int                  `json:"count"`
+	Results []model.SearchResult `json:"results"`
+	Answer  *model.AnswerSummary `json:"answer,omitempty"`
+}
+
+func (s *Service) SearchWithAnswer(ctx context.Context, query string, limit int) (SearchResponse, error) {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -192,7 +214,7 @@ func (s *Service) Search(query string, limit int) ([]model.SearchResult, error) 
 	for _, score := range scored {
 		doc, err := s.store.Get(score.DocumentID)
 		if err != nil {
-			return nil, err
+			return SearchResponse{}, err
 		}
 		documents[score.DocumentID] = doc
 	}
@@ -217,7 +239,20 @@ func (s *Service) Search(query string, limit int) ([]model.SearchResult, error) 
 		})
 	}
 
-	return results, nil
+	response := SearchResponse{
+		Query:   query,
+		Count:   len(results),
+		Results: results,
+	}
+
+	if s.summary != nil && len(results) > 0 {
+		summary, err := s.summary.Summarize(ctx, query, collectSnippets(results))
+		if err == nil {
+			response.Answer = &summary
+		}
+	}
+
+	return response, nil
 }
 
 func (s *Service) runCrawlWorker() {
@@ -372,6 +407,16 @@ func buildSnippet(content, query string) string {
 		return content
 	}
 	return strings.TrimSpace(content[:200]) + "..."
+}
+
+func collectSnippets(results []model.SearchResult) []string {
+	snippets := make([]string, 0, len(results))
+	for _, result := range results {
+		if snippet := strings.TrimSpace(result.Snippet); snippet != "" {
+			snippets = append(snippets, snippet)
+		}
+	}
+	return snippets
 }
 
 func normalizeURLs(urls []string) []string {

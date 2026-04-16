@@ -109,17 +109,12 @@ func NewServer(cfg config.Config, service *search.Service) *Server {
 			}
 		}
 
-		results, err := service.Search(query, limit)
+		response, err := service.SearchWithAnswer(r.Context(), query, limit)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-
-		writeJSON(w, http.StatusOK, map[string]any{
-			"query":   query,
-			"count":   len(results),
-			"results": results,
-		})
+		writeJSON(w, http.StatusOK, response)
 	})
 
 	return &Server{

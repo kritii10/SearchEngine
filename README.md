@@ -10,7 +10,7 @@ This first version includes:
 - inverted index with BM25-style scoring
 - reranking with title and exact-phrase boosts
 - HTTP API for crawling and searching
-- Python summarization service scaffold for grounded answer generation
+- optional Python summarization service for grounded answer generation
 
 ## Architecture
 
@@ -60,6 +60,8 @@ This first version includes:
 
 `GET /api/v1/search?q=example`
 
+When the AI service is running, search responses also include an `answer` field with a grounded summary built from the top snippets.
+
 ## Local setup
 
 ### Go API
@@ -71,7 +73,7 @@ This first version includes:
 
 1. Create a virtual environment.
 2. Install dependencies from `ai/requirements.txt`.
-3. Run `uvicorn app:app --reload` from the `ai` directory.
+3. Run `uvicorn app:app --reload --host 127.0.0.1 --port 8001` from the `ai` directory.
 
 ## Next steps
 

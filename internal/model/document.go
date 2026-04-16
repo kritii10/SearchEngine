@@ -22,6 +22,13 @@ type SearchResult struct {
 	Signals     RankingSignals `json:"signals"`
 }
 
+type AnswerSummary struct {
+	Query          string   `json:"query"`
+	Summary        string   `json:"summary"`
+	GroundedPoints []string `json:"grounded_points"`
+	Generated      bool     `json:"generated"`
+}
+
 type RankingSignals struct {
 	BaseScore         float64 `json:"base_score"`
 	TitleMatchBoost   float64 `json:"title_match_boost"`
