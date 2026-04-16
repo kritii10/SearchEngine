@@ -10,16 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/html"
+
 	"atlas-search/internal/index"
 	"atlas-search/internal/model"
 )
 
-var (
-	titlePattern       = regexp.MustCompile(`(?is)<title[^>]*>(.*?)</title>`)
-	metaDescriptionTag = regexp.MustCompile(`(?is)<meta[^>]*name=["']description["'][^>]*content=["'](.*?)["'][^>]*>`)
-	tagPattern         = regexp.MustCompile(`(?s)<[^>]*>`)
-	spacePattern       = regexp.MustCompile(`\s+`)
-)
+var spacePattern = regexp.MustCompile(`\s+`)
 
 type Fetcher struct {
 	client    *http.Client
@@ -56,9 +53,7 @@ func (f *Fetcher) Fetch(url string) (model.Document, error) {
 	}
 
 	rawHTML := string(body)
-	title := firstMatch(titlePattern, rawHTML)
-	description := firstMatch(metaDescriptionTag, rawHTML)
-	content := textFromHTML(rawHTML)
+	title, description, content := extractDocumentParts(rawHTML)
 	if title == "" {
 		title = url
 	}
@@ -70,7 +65,7 @@ func (f *Fetcher) Fetch(url string) (model.Document, error) {
 		URL:         url,
 		Title:       cleanWhitespace(title),
 		Description: cleanWhitespace(description),
-		Content:     content,
+		Content:     cleanWhitespace(content),
 		Terms:       index.Tokenize(strings.Join([]string{title, description, content}, " ")),
 		CrawledAt:   time.Now().UTC(),
 	}
@@ -78,20 +73,116 @@ func (f *Fetcher) Fetch(url string) (model.Document, error) {
 	return doc, nil
 }
 
-func firstMatch(pattern *regexp.Regexp, input string) string {
-	matches := pattern.FindStringSubmatch(input)
-	if len(matches) < 2 {
-		return ""
+func extractDocumentParts(input string) (title, description, content string) {
+	root, err := html.Parse(strings.NewReader(input))
+	if err != nil {
+		return "", "", cleanWhitespace(stripTagsFallback(input))
 	}
-	return stripTags(matches[1])
+
+	var textParts []string
+	var walk func(*html.Node, bool)
+	walk = func(node *html.Node, hidden bool) {
+		if node == nil {
+			return
+		}
+
+		currentHidden := hidden || isIgnoredElement(node)
+
+		if node.Type == html.ElementNode {
+			switch node.Data {
+			case "title":
+				if title == "" {
+					title = extractText(node)
+				}
+			case "meta":
+				if description == "" {
+					name := strings.ToLower(getAttr(node, "name"))
+					property := strings.ToLower(getAttr(node, "property"))
+					if name == "description" || property == "og:description" {
+						description = getAttr(node, "content")
+					}
+				}
+			case "br", "p", "div", "section", "article", "li", "h1", "h2", "h3", "h4", "h5", "h6":
+				textParts = append(textParts, " ")
+			}
+		}
+
+		if node.Type == html.TextNode && !currentHidden {
+			text := cleanWhitespace(html.UnescapeString(node.Data))
+			if text != "" {
+				textParts = append(textParts, text)
+			}
+		}
+
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			walk(child, currentHidden)
+		}
+	}
+
+	walk(root, false)
+	return cleanWhitespace(title), cleanWhitespace(description), cleanWhitespace(strings.Join(textParts, " "))
 }
 
-func textFromHTML(input string) string {
-	return cleanWhitespace(stripTags(input))
+func extractText(node *html.Node) string {
+	var parts []string
+	var walk func(*html.Node)
+	walk = func(current *html.Node) {
+		if current == nil {
+			return
+		}
+		if current.Type == html.TextNode {
+			text := cleanWhitespace(html.UnescapeString(current.Data))
+			if text != "" {
+				parts = append(parts, text)
+			}
+		}
+		for child := current.FirstChild; child != nil; child = child.NextSibling {
+			walk(child)
+		}
+	}
+	walk(node)
+	return strings.Join(parts, " ")
 }
 
-func stripTags(input string) string {
-	return tagPattern.ReplaceAllString(input, " ")
+func isIgnoredElement(node *html.Node) bool {
+	if node.Type != html.ElementNode {
+		return false
+	}
+
+	switch node.Data {
+	case "script", "style", "noscript", "svg", "canvas", "iframe":
+		return true
+	}
+	return false
+}
+
+func getAttr(node *html.Node, key string) string {
+	for _, attr := range node.Attr {
+		if strings.EqualFold(attr.Key, key) {
+			return attr.Val
+		}
+	}
+	return ""
+}
+
+func stripTagsFallback(input string) string {
+	inTag := false
+	var builder strings.Builder
+	for _, r := range input {
+		switch r {
+		case '<':
+			inTag = true
+			builder.WriteRune(' ')
+		case '>':
+			inTag = false
+			builder.WriteRune(' ')
+		default:
+			if !inTag {
+				builder.WriteRune(r)
+			}
+		}
+	}
+	return builder.String()
 }
 
 func cleanWhitespace(input string) string {
