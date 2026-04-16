@@ -2,6 +2,7 @@ package search
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
@@ -122,16 +123,23 @@ func (s *Service) Search(query string, limit int) ([]model.SearchResult, error) 
 	}
 
 	scored := s.index.Search(query)
-	if len(scored) > limit {
-		scored = scored[:limit]
-	}
-
-	results := make([]model.SearchResult, 0, len(scored))
+	documents := make(map[string]model.Document, len(scored))
 	for _, score := range scored {
 		doc, err := s.store.Get(score.DocumentID)
 		if err != nil {
 			return nil, err
 		}
+		documents[score.DocumentID] = doc
+	}
+
+	ranked := rerank(query, scored, documents)
+	if len(ranked) > limit {
+		ranked = ranked[:limit]
+	}
+
+	results := make([]model.SearchResult, 0, len(ranked))
+	for _, reranked := range ranked {
+		doc := documents[reranked.documentID]
 
 		results = append(results, model.SearchResult{
 			DocumentID:  doc.ID,
@@ -139,11 +147,75 @@ func (s *Service) Search(query string, limit int) ([]model.SearchResult, error) 
 			Title:       doc.Title,
 			Description: doc.Description,
 			Snippet:     buildSnippet(doc.Content, query),
-			Score:       score.Score,
+			Score:       reranked.score,
+			Signals:     reranked.signals,
 		})
 	}
 
 	return results, nil
+}
+
+type rerankedScore struct {
+	documentID string
+	score      float64
+	signals    model.RankingSignals
+}
+
+func rerank(query string, scored []index.ResultScore, documents map[string]model.Document) []rerankedScore {
+	lowerQuery := strings.ToLower(strings.TrimSpace(query))
+	if lowerQuery == "" {
+		return nil
+	}
+
+	queryTerms := index.Tokenize(query)
+	reranked := make([]rerankedScore, 0, len(scored))
+	for _, candidate := range scored {
+		doc, ok := documents[candidate.DocumentID]
+		if !ok {
+			continue
+		}
+
+		signals := model.RankingSignals{
+			BaseScore: candidate.Score,
+		}
+
+		lowerTitle := strings.ToLower(doc.Title)
+		lowerDescription := strings.ToLower(doc.Description)
+		lowerContent := strings.ToLower(doc.Content)
+
+		for _, term := range queryTerms {
+			if strings.Contains(lowerTitle, term) {
+				signals.TitleMatchBoost += 0.35
+			}
+			if strings.Contains(lowerDescription, term) {
+				signals.DescriptionBoost += 0.15
+			}
+		}
+
+		if strings.Contains(lowerTitle, lowerQuery) {
+			signals.ExactPhraseBoost += 1.25
+		} else if strings.Contains(lowerContent, lowerQuery) {
+			signals.ExactPhraseBoost += 0.65
+		}
+
+		total := candidate.Score + signals.TitleMatchBoost + signals.DescriptionBoost + signals.ExactPhraseBoost
+		signals.CombinedScoreHint = total
+
+		reranked = append(reranked, rerankedScore{
+			documentID: candidate.DocumentID,
+			score:      total,
+			signals:    signals,
+		})
+	}
+
+	sort.Slice(reranked, func(i, j int) bool {
+		if reranked[i].score == reranked[j].score {
+			return reranked[i].documentID < reranked[j].documentID
+		}
+		return reranked[i].score > reranked[j].score
+	})
+
+	return reranked
 }
 
 func (s *Service) Stats() map[string]int {

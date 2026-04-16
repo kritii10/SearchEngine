@@ -7,6 +7,7 @@ This first version includes:
 - concurrent-ish crawl pipeline with bounded fan-out
 - in-memory document store
 - inverted index with BM25-style scoring
+- reranking with title and exact-phrase boosts
 - HTTP API for crawling and searching
 - Python summarization service scaffold for grounded answer generation
 
@@ -61,4 +62,3 @@ This first version includes:
 - support recrawl scheduling and deduplication
 - connect search results to the AI summarization endpoint
 - add a simple frontend for result exploration
-
