@@ -5,8 +5,9 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
-	"atlas-search/internal/crawler"
 	"atlas-search/internal/index"
 	"atlas-search/internal/model"
 	"atlas-search/internal/store"
@@ -15,7 +16,16 @@ import (
 type Service struct {
 	store   store.DocumentStore
 	index   *index.Index
-	fetcher *crawler.Fetcher
+	fetcher Fetcher
+
+	jobQueue    chan string
+	jobsMu      sync.RWMutex
+	jobs        map[string]CrawlJob
+	jobSequence uint64
+}
+
+type Fetcher interface {
+	Fetch(url string) (model.Document, error)
 }
 
 type CrawlIssue struct {
@@ -28,15 +38,75 @@ type CrawlResponse struct {
 	Issues    []CrawlIssue     `json:"issues"`
 }
 
-func NewService(store store.DocumentStore, idx *index.Index, fetcher *crawler.Fetcher) *Service {
-	return &Service{
-		store:   store,
-		index:   idx,
-		fetcher: fetcher,
+type CrawlJobStatus string
+
+const (
+	CrawlJobQueued    CrawlJobStatus = "queued"
+	CrawlJobRunning   CrawlJobStatus = "running"
+	CrawlJobCompleted CrawlJobStatus = "completed"
+	CrawlJobFailed    CrawlJobStatus = "failed"
+)
+
+type CrawlJob struct {
+	ID          string         `json:"id"`
+	Status      CrawlJobStatus `json:"status"`
+	URLs        []string       `json:"urls"`
+	Response    CrawlResponse  `json:"response"`
+	Error       string         `json:"error,omitempty"`
+	CreatedAt   time.Time      `json:"created_at"`
+	StartedAt   *time.Time     `json:"started_at,omitempty"`
+	CompletedAt *time.Time     `json:"completed_at,omitempty"`
+}
+
+func NewService(store store.DocumentStore, idx *index.Index, fetcher Fetcher) *Service {
+	service := &Service{
+		store:    store,
+		index:    idx,
+		fetcher:  fetcher,
+		jobQueue: make(chan string, 32),
+		jobs:     make(map[string]CrawlJob),
 	}
+	go service.runCrawlWorker()
+	return service
 }
 
 func (s *Service) Crawl(urls []string) (CrawlResponse, error) {
+	return s.executeCrawl(urls)
+}
+
+func (s *Service) EnqueueCrawl(urls []string) (CrawlJob, error) {
+	normalized := normalizeURLs(urls)
+	if len(normalized) == 0 {
+		return CrawlJob{}, nil
+	}
+
+	jobID := fmt.Sprintf("crawl-%d", atomic.AddUint64(&s.jobSequence, 1))
+	job := CrawlJob{
+		ID:        jobID,
+		Status:    CrawlJobQueued,
+		URLs:      normalized,
+		Response:  CrawlResponse{Documents: []model.Document{}, Issues: []CrawlIssue{}},
+		CreatedAt: time.Now().UTC(),
+	}
+
+	s.jobsMu.Lock()
+	s.jobs[jobID] = job
+	s.jobsMu.Unlock()
+
+	s.jobQueue <- jobID
+
+	return job, nil
+}
+
+func (s *Service) GetCrawlJob(id string) (CrawlJob, bool) {
+	s.jobsMu.RLock()
+	defer s.jobsMu.RUnlock()
+
+	job, ok := s.jobs[id]
+	return job, ok
+}
+
+func (s *Service) executeCrawl(urls []string) (CrawlResponse, error) {
 	const maxWorkers = 4
 
 	type crawlResult struct {
@@ -45,12 +115,7 @@ func (s *Service) Crawl(urls []string) (CrawlResponse, error) {
 		err      error
 	}
 
-	normalized := make([]string, 0, len(urls))
-	for _, url := range urls {
-		if trimmed := strings.TrimSpace(url); trimmed != "" {
-			normalized = append(normalized, trimmed)
-		}
-	}
+	normalized := normalizeURLs(urls)
 
 	if len(normalized) == 0 {
 		return CrawlResponse{}, nil
@@ -155,6 +220,68 @@ func (s *Service) Search(query string, limit int) ([]model.SearchResult, error) 
 	return results, nil
 }
 
+func (s *Service) runCrawlWorker() {
+	for jobID := range s.jobQueue {
+		s.setJobRunning(jobID)
+		job, ok := s.GetCrawlJob(jobID)
+		if !ok {
+			continue
+		}
+
+		response, err := s.executeCrawl(job.URLs)
+		if err != nil {
+			s.setJobFailed(jobID, err)
+			continue
+		}
+
+		s.setJobCompleted(jobID, response)
+	}
+}
+
+func (s *Service) setJobRunning(jobID string) {
+	s.jobsMu.Lock()
+	defer s.jobsMu.Unlock()
+
+	job, ok := s.jobs[jobID]
+	if !ok {
+		return
+	}
+	now := time.Now().UTC()
+	job.Status = CrawlJobRunning
+	job.StartedAt = &now
+	s.jobs[jobID] = job
+}
+
+func (s *Service) setJobFailed(jobID string, err error) {
+	s.jobsMu.Lock()
+	defer s.jobsMu.Unlock()
+
+	job, ok := s.jobs[jobID]
+	if !ok {
+		return
+	}
+	now := time.Now().UTC()
+	job.Status = CrawlJobFailed
+	job.Error = err.Error()
+	job.CompletedAt = &now
+	s.jobs[jobID] = job
+}
+
+func (s *Service) setJobCompleted(jobID string, response CrawlResponse) {
+	s.jobsMu.Lock()
+	defer s.jobsMu.Unlock()
+
+	job, ok := s.jobs[jobID]
+	if !ok {
+		return
+	}
+	now := time.Now().UTC()
+	job.Status = CrawlJobCompleted
+	job.Response = response
+	job.CompletedAt = &now
+	s.jobs[jobID] = job
+}
+
 type rerankedScore struct {
 	documentID string
 	score      float64
@@ -245,6 +372,16 @@ func buildSnippet(content, query string) string {
 		return content
 	}
 	return strings.TrimSpace(content[:200]) + "..."
+}
+
+func normalizeURLs(urls []string) []string {
+	normalized := make([]string, 0, len(urls))
+	for _, url := range urls {
+		if trimmed := strings.TrimSpace(url); trimmed != "" {
+			normalized = append(normalized, trimmed)
+		}
+	}
+	return normalized
 }
 
 func min(a, b int) int {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"atlas-search/internal/config"
 	"atlas-search/internal/search"
@@ -44,6 +45,54 @@ func NewServer(cfg config.Config, service *search.Service) *Server {
 		}
 
 		writeJSON(w, http.StatusCreated, response)
+	})
+
+	mux.HandleFunc("/api/v1/crawl/jobs", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+			return
+		}
+
+		var req struct {
+			URLs []string `json:"urls"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json body"})
+			return
+		}
+
+		job, err := service.EnqueueCrawl(req.URLs)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		if len(job.URLs) == 0 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "at least one url is required"})
+			return
+		}
+
+		writeJSON(w, http.StatusAccepted, job)
+	})
+
+	mux.HandleFunc("/api/v1/crawl/jobs/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+			return
+		}
+
+		jobID := strings.TrimPrefix(r.URL.Path, "/api/v1/crawl/jobs/")
+		if jobID == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "job id is required"})
+			return
+		}
+
+		job, ok := service.GetCrawlJob(jobID)
+		if !ok {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "crawl job not found"})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, job)
 	})
 
 	mux.HandleFunc("/api/v1/search", func(w http.ResponseWriter, r *http.Request) {

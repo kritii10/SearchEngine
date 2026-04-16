@@ -5,6 +5,7 @@ Atlas Search is a Google-inspired hybrid search engine with Go as the core runti
 This first version includes:
 
 - concurrent-ish crawl pipeline with bounded fan-out
+- asynchronous crawl job queue with status tracking
 - in-memory document store
 - inverted index with BM25-style scoring
 - reranking with title and exact-phrase boosts
@@ -37,6 +38,23 @@ This first version includes:
   ]
 }
 ```
+
+### Enqueue crawl job
+
+`POST /api/v1/crawl/jobs`
+
+```json
+{
+  "urls": [
+    "https://example.com",
+    "https://go.dev"
+  ]
+}
+```
+
+### Crawl job status
+
+`GET /api/v1/crawl/jobs/{jobID}`
 
 ### Search
 
