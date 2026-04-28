@@ -43,18 +43,31 @@ func (s *PostgresStore) Upsert(doc model.Document) error {
 	if err != nil {
 		return fmt.Errorf("marshal terms: %w", err)
 	}
+	linksJSON, err := json.Marshal(doc.Links)
+	if err != nil {
+		return fmt.Errorf("marshal links: %w", err)
+	}
+	headingsJSON, err := json.Marshal(doc.Headings)
+	if err != nil {
+		return fmt.Errorf("marshal headings: %w", err)
+	}
 
 	_, err = s.db.Exec(`
-		INSERT INTO documents (id, url, title, description, content, terms, crawled_at)
-		VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
+		INSERT INTO documents (id, url, domain, title, description, content, terms, links, headings, content_fingerprint, crawled_at, recrawl_after)
+		VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9::jsonb, $10, $11, $12)
 		ON CONFLICT (id) DO UPDATE SET
 			url = EXCLUDED.url,
+			domain = EXCLUDED.domain,
 			title = EXCLUDED.title,
 			description = EXCLUDED.description,
 			content = EXCLUDED.content,
 			terms = EXCLUDED.terms,
-			crawled_at = EXCLUDED.crawled_at
-	`, doc.ID, doc.URL, doc.Title, doc.Description, doc.Content, string(termsJSON), doc.CrawledAt)
+			links = EXCLUDED.links,
+			headings = EXCLUDED.headings,
+			content_fingerprint = EXCLUDED.content_fingerprint,
+			crawled_at = EXCLUDED.crawled_at,
+			recrawl_after = EXCLUDED.recrawl_after
+	`, doc.ID, doc.URL, doc.Domain, doc.Title, doc.Description, doc.Content, string(termsJSON), string(linksJSON), string(headingsJSON), doc.ContentFingerprint, doc.CrawledAt, doc.RecrawlAfter)
 	if err != nil {
 		return fmt.Errorf("upsert document: %w", err)
 	}
@@ -64,7 +77,7 @@ func (s *PostgresStore) Upsert(doc model.Document) error {
 
 func (s *PostgresStore) Get(id string) (model.Document, error) {
 	row := s.db.QueryRow(`
-		SELECT id, url, title, description, content, terms, crawled_at
+		SELECT id, url, domain, title, description, content, terms, links, headings, content_fingerprint, crawled_at, recrawl_after
 		FROM documents
 		WHERE id = $1
 	`, id)
@@ -79,9 +92,28 @@ func (s *PostgresStore) Get(id string) (model.Document, error) {
 	return doc, nil
 }
 
+func (s *PostgresStore) FindByContentFingerprint(fingerprint string) (model.Document, error) {
+	row := s.db.QueryRow(`
+		SELECT id, url, domain, title, description, content, terms, links, headings, content_fingerprint, crawled_at, recrawl_after
+		FROM documents
+		WHERE content_fingerprint = $1
+		ORDER BY crawled_at DESC
+		LIMIT 1
+	`, fingerprint)
+
+	doc, err := scanDocument(row.Scan)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.Document{}, ErrDocumentNotFound
+		}
+		return model.Document{}, err
+	}
+	return doc, nil
+}
+
 func (s *PostgresStore) List() []model.Document {
 	rows, err := s.db.Query(`
-		SELECT id, url, title, description, content, terms, crawled_at
+		SELECT id, url, domain, title, description, content, terms, links, headings, content_fingerprint, crawled_at, recrawl_after
 		FROM documents
 		ORDER BY crawled_at DESC
 	`)
@@ -109,20 +141,47 @@ func (s *PostgresStore) Count() int {
 	return count
 }
 
+func (s *PostgresStore) StaleCount(now time.Time) int {
+	var count int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM documents WHERE recrawl_after <= $1`, now).Scan(&count); err != nil {
+		return 0
+	}
+	return count
+}
+
 func (s *PostgresStore) ensureSchema(ctx context.Context) error {
 	_, err := s.db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS documents (
 			id TEXT PRIMARY KEY,
 			url TEXT NOT NULL,
+			domain TEXT NOT NULL DEFAULT '',
 			title TEXT NOT NULL,
 			description TEXT NOT NULL DEFAULT '',
 			content TEXT NOT NULL,
 			terms JSONB NOT NULL DEFAULT '[]'::jsonb,
-			crawled_at TIMESTAMPTZ NOT NULL
+			links JSONB NOT NULL DEFAULT '[]'::jsonb,
+			headings JSONB NOT NULL DEFAULT '[]'::jsonb,
+			content_fingerprint TEXT NOT NULL DEFAULT '',
+			crawled_at TIMESTAMPTZ NOT NULL,
+			recrawl_after TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		);
 
+		ALTER TABLE documents
+		ADD COLUMN IF NOT EXISTS content_fingerprint TEXT NOT NULL DEFAULT '';
+		ALTER TABLE documents
+		ADD COLUMN IF NOT EXISTS domain TEXT NOT NULL DEFAULT '';
+		ALTER TABLE documents
+		ADD COLUMN IF NOT EXISTS links JSONB NOT NULL DEFAULT '[]'::jsonb;
+		ALTER TABLE documents
+		ADD COLUMN IF NOT EXISTS headings JSONB NOT NULL DEFAULT '[]'::jsonb;
+		ALTER TABLE documents
+		ADD COLUMN IF NOT EXISTS recrawl_after TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
 		CREATE INDEX IF NOT EXISTS documents_crawled_at_idx ON documents (crawled_at DESC);
+		CREATE INDEX IF NOT EXISTS documents_recrawl_after_idx ON documents (recrawl_after);
 		CREATE INDEX IF NOT EXISTS documents_url_idx ON documents (url);
+		CREATE INDEX IF NOT EXISTS documents_domain_idx ON documents (domain);
+		CREATE INDEX IF NOT EXISTS documents_content_fingerprint_idx ON documents (content_fingerprint);
 	`)
 	if err != nil {
 		return fmt.Errorf("ensure postgres schema: %w", err)
@@ -135,13 +194,25 @@ type scannerFn func(dest ...any) error
 func scanDocument(scan scannerFn) (model.Document, error) {
 	var doc model.Document
 	var termsJSON []byte
-	if err := scan(&doc.ID, &doc.URL, &doc.Title, &doc.Description, &doc.Content, &termsJSON, &doc.CrawledAt); err != nil {
+	var linksJSON []byte
+	var headingsJSON []byte
+	if err := scan(&doc.ID, &doc.URL, &doc.Domain, &doc.Title, &doc.Description, &doc.Content, &termsJSON, &linksJSON, &headingsJSON, &doc.ContentFingerprint, &doc.CrawledAt, &doc.RecrawlAfter); err != nil {
 		return model.Document{}, err
 	}
 
 	if len(termsJSON) > 0 {
 		if err := json.Unmarshal(termsJSON, &doc.Terms); err != nil {
 			return model.Document{}, fmt.Errorf("decode document terms: %w", err)
+		}
+	}
+	if len(linksJSON) > 0 {
+		if err := json.Unmarshal(linksJSON, &doc.Links); err != nil {
+			return model.Document{}, fmt.Errorf("decode document links: %w", err)
+		}
+	}
+	if len(headingsJSON) > 0 {
+		if err := json.Unmarshal(headingsJSON, &doc.Headings); err != nil {
+			return model.Document{}, fmt.Errorf("decode document headings: %w", err)
 		}
 	}
 

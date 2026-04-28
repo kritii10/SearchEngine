@@ -60,7 +60,7 @@ func TestSearchWithAnswerIncludesSummaryWhenAvailable(t *testing.T) {
 	}
 }
 
-func TestSearchWithAnswerSkipsSummaryOnSummarizerFailure(t *testing.T) {
+func TestSearchWithAnswerFallsBackToCitedSummaryOnSummarizerFailure(t *testing.T) {
 	documentStore := store.NewMemoryStore()
 	searchIndex := index.New()
 
@@ -86,7 +86,10 @@ func TestSearchWithAnswerSkipsSummaryOnSummarizerFailure(t *testing.T) {
 		t.Fatalf("search with answer failed: %v", err)
 	}
 
-	if response.Answer != nil {
-		t.Fatal("expected answer summary to be omitted when summarizer fails")
+	if response.Answer == nil {
+		t.Fatal("expected fallback answer summary when summarizer fails")
+	}
+	if len(response.Answer.Citations) == 0 {
+		t.Fatalf("expected fallback citations, got %+v", response.Answer)
 	}
 }

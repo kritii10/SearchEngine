@@ -3,6 +3,7 @@ package store
 import (
 	"errors"
 	"sync"
+	"time"
 
 	"atlas-search/internal/model"
 )
@@ -12,8 +13,10 @@ var ErrDocumentNotFound = errors.New("document not found")
 type DocumentStore interface {
 	Upsert(doc model.Document) error
 	Get(id string) (model.Document, error)
+	FindByContentFingerprint(fingerprint string) (model.Document, error)
 	List() []model.Document
 	Count() int
+	StaleCount(now time.Time) int
 }
 
 type MemoryStore struct {
@@ -45,6 +48,18 @@ func (s *MemoryStore) Get(id string) (model.Document, error) {
 	return doc, nil
 }
 
+func (s *MemoryStore) FindByContentFingerprint(fingerprint string) (model.Document, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, doc := range s.documents {
+		if doc.ContentFingerprint == fingerprint {
+			return doc, nil
+		}
+	}
+	return model.Document{}, ErrDocumentNotFound
+}
+
 func (s *MemoryStore) List() []model.Document {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -60,4 +75,17 @@ func (s *MemoryStore) Count() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return len(s.documents)
+}
+
+func (s *MemoryStore) StaleCount(now time.Time) int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	count := 0
+	for _, doc := range s.documents {
+		if !doc.RecrawlAfter.IsZero() && !doc.RecrawlAfter.After(now) {
+			count++
+		}
+	}
+	return count
 }

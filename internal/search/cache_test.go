@@ -58,4 +58,15 @@ func TestSearchWithAnswerUsesCacheForRepeatQueries(t *testing.T) {
 	if summarizer.count != 1 {
 		t.Fatalf("expected summarizer to be called once due to cache hit, got %d", summarizer.count)
 	}
+
+	analytics := service.Analytics()
+	if analytics.TotalQueries != 2 {
+		t.Fatalf("expected analytics to record 2 queries, got %+v", analytics)
+	}
+	if analytics.CacheHits != 1 {
+		t.Fatalf("expected 1 cache hit, got %+v", analytics)
+	}
+	if analytics.CacheHitRate <= 0 {
+		t.Fatalf("expected positive cache hit rate, got %+v", analytics)
+	}
 }

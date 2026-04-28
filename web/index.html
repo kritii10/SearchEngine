@@ -3,205 +3,1529 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Atlas Search</title>
+    <title>Atlas Search Dashboard</title>
     <style>
       :root {
-        --bg: #f5f1e8;
-        --panel: #fffaf0;
-        --ink: #1f2937;
-        --muted: #6b7280;
-        --accent: #0f766e;
-        --border: #d6d3d1;
+        --bg: #f1ede3;
+        --panel: rgba(255, 252, 245, 0.78);
+        --panel-strong: #fffaf2;
+        --text: #152033;
+        --muted: #667085;
+        --line: rgba(21, 32, 51, 0.12);
+        --accent: #0c7c66;
+        --accent-strong: #095a4a;
+        --warm: #c77a32;
+        --shadow: 0 30px 80px rgba(21, 32, 51, 0.12);
       }
-      * { box-sizing: border-box; }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         margin: 0;
-        font-family: Georgia, "Times New Roman", serif;
-        color: var(--ink);
+        color: var(--text);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
         background:
-          radial-gradient(circle at top right, rgba(15,118,110,0.14), transparent 30%),
-          linear-gradient(180deg, #f9f4e8 0%, var(--bg) 100%);
+          radial-gradient(circle at 0% 0%, rgba(199, 122, 50, 0.18), transparent 28%),
+          radial-gradient(circle at 100% 0%, rgba(12, 124, 102, 0.18), transparent 28%),
+          linear-gradient(180deg, #f8f4ea 0%, var(--bg) 100%);
       }
-      main {
-        max-width: 980px;
+
+      .shell {
+        max-width: 1320px;
         margin: 0 auto;
-        padding: 40px 20px 64px;
+        padding: 28px 20px 56px;
       }
+
       .hero {
-        padding: 28px;
-        border: 1px solid var(--border);
-        border-radius: 24px;
-        background: rgba(255,250,240,0.86);
-        backdrop-filter: blur(8px);
-        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
+        margin-bottom: 22px;
+        padding: 26px;
+        border-radius: 34px;
+        border: 1px solid rgba(21, 32, 51, 0.1);
+        background:
+          linear-gradient(135deg, rgba(255, 250, 242, 0.96), rgba(247, 241, 231, 0.84)),
+          radial-gradient(circle at top right, rgba(12, 124, 102, 0.12), transparent 32%);
+        box-shadow: var(--shadow);
       }
-      h1 {
-        margin: 0 0 8px;
-        font-size: clamp(2rem, 4vw, 3.4rem);
-        line-height: 0.95;
-      }
-      p { color: var(--muted); }
-      form {
-        display: grid;
-        gap: 12px;
-        margin-top: 24px;
-      }
-      textarea, input, button {
-        font: inherit;
-      }
-      textarea, input {
-        width: 100%;
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 14px 16px;
-        background: white;
-      }
-      .row {
-        display: grid;
-        grid-template-columns: 2fr 1fr auto;
-        gap: 12px;
-      }
-      button {
-        border: 0;
-        background: var(--accent);
-        color: white;
-        border-radius: 16px;
-        padding: 14px 18px;
-        cursor: pointer;
-      }
-      .section {
-        margin-top: 24px;
-        padding: 24px;
-        border: 1px solid var(--border);
-        border-radius: 24px;
-        background: var(--panel);
-      }
-      .result {
-        padding: 16px 0;
-        border-top: 1px solid #e7e5e4;
-      }
-      .result:first-child {
-        border-top: 0;
-        padding-top: 0;
-      }
-      .url {
-        color: var(--accent);
-        font-size: 0.95rem;
-        word-break: break-all;
-      }
-      .meta {
-        color: var(--muted);
-        font-size: 0.9rem;
-      }
-      .answer {
-        border-left: 4px solid var(--accent);
-        padding-left: 16px;
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
         margin-bottom: 18px;
       }
-      .status {
-        color: var(--muted);
-        min-height: 1.2em;
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
       }
+
+      .badge {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--accent), var(--warm));
+        box-shadow: 0 14px 32px rgba(12, 124, 102, 0.24);
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: clamp(2rem, 3.8vw, 3.8rem);
+        line-height: 0.94;
+        letter-spacing: -0.03em;
+      }
+
+      .brand p,
+      .topbar p {
+        margin: 0;
+        color: var(--muted);
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr);
+        gap: 20px;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(14px);
+      }
+
+      .sidebar,
+      .workspace {
+        padding: 22px;
+      }
+
+      .sidebar {
+        display: grid;
+        gap: 18px;
+        align-content: start;
+      }
+
+      .workspace {
+        display: grid;
+        gap: 18px;
+      }
+
+      .hero-notes {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+      }
+
+      .card {
+        padding: 18px;
+        border-radius: 22px;
+        background: var(--panel-strong);
+        border: 1px solid rgba(21, 32, 51, 0.08);
+      }
+
+      .card h2,
+      .card h3 {
+        margin: 0 0 8px;
+        font-size: 1.05rem;
+      }
+
+      .eyebrow {
+        font: 600 0.78rem/1.2 ui-sans-serif, system-ui, sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .stat {
+        padding: 18px;
+        border-radius: 20px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(247, 242, 233, 0.88));
+        border: 1px solid rgba(21, 32, 51, 0.08);
+      }
+
+      .stat strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 1.8rem;
+      }
+
+      .search-shell {
+        position: relative;
+      }
+
+      .search-card {
+        padding: 22px;
+      }
+
+      .command-deck {
+        display: grid;
+        gap: 16px;
+      }
+
+      .command-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .search-box {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 100px auto auto;
+        gap: 12px;
+      }
+
+      input,
+      textarea,
+      button {
+        font: inherit;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        padding: 14px 16px;
+        background: rgba(255,255,255,0.9);
+        color: var(--text);
+      }
+
+      textarea {
+        min-height: 112px;
+        resize: vertical;
+      }
+
+      button {
+        border: 0;
+        border-radius: 18px;
+        padding: 0 18px;
+        background: var(--accent);
+        color: white;
+        cursor: pointer;
+        transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
+        box-shadow: 0 10px 24px rgba(12, 124, 102, 0.18);
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        background: var(--accent-strong);
+      }
+
+      .ghost {
+        background: rgba(255,255,255,0.86);
+        color: var(--text);
+        border: 1px solid var(--line);
+        box-shadow: none;
+      }
+
+      .suggestions {
+        position: absolute;
+        left: 0;
+        top: calc(100% + 10px);
+        width: min(520px, 100%);
+        z-index: 20;
+        display: none;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: #fffdf8;
+        box-shadow: 0 20px 40px rgba(21, 32, 51, 0.12);
+        overflow: hidden;
+      }
+
+      .suggestions.visible {
+        display: block;
+      }
+
+      .suggestion {
+        width: 100%;
+        text-align: left;
+        padding: 12px 16px;
+        border-radius: 0;
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        box-shadow: none;
+      }
+
+      .suggestion:hover {
+        transform: none;
+        background: rgba(12, 124, 102, 0.08);
+      }
+
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .chips,
+      .tabs,
+      .recent-list,
+      .control-row,
+      .preset-strip {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .control-row {
+        margin-top: 12px;
+        align-items: center;
+      }
+
+      .control-row label {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+        font: 600 0.78rem/1.2 ui-sans-serif, system-ui, sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+
+      .control-cluster {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .control-row select,
+      .pager button {
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.78);
+        color: var(--text);
+        padding: 10px 14px;
+        font: 500 0.92rem/1 ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .pager {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 16px;
+      }
+
+      .chip,
+      .tab {
+        padding: 9px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.7);
+        color: var(--text);
+        font: 500 0.92rem/1.1 ui-sans-serif, system-ui, sans-serif;
+        cursor: pointer;
+      }
+
+      .tab.active,
+      .chip.active {
+        background: rgba(12, 124, 102, 0.12);
+        border-color: rgba(12, 124, 102, 0.28);
+        color: var(--accent-strong);
+      }
+
+      .chip.preset-active {
+        background: linear-gradient(135deg, rgba(12, 124, 102, 0.18), rgba(199, 122, 50, 0.18));
+        border-color: rgba(12, 124, 102, 0.22);
+      }
+
+      .answer {
+        padding: 18px;
+        border-radius: 22px;
+        background: linear-gradient(135deg, rgba(12,124,102,0.12), rgba(199,122,50,0.1));
+        border: 1px solid rgba(12, 124, 102, 0.14);
+      }
+
+      .serp-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.28fr) minmax(300px, 0.72fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .main-stack,
+      .rail-stack,
+      .results-stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .answer ul,
+      .jobs ul {
+        margin: 10px 0 0;
+        padding-left: 18px;
+      }
+
+      .result {
+        padding: 18px;
+        border-radius: 24px;
+        border: 1px solid rgba(21, 32, 51, 0.08);
+        background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(250, 246, 237, 0.9));
+        box-shadow: 0 16px 40px rgba(21, 32, 51, 0.06);
+      }
+
+      .result:first-child {
+        padding-top: 18px;
+      }
+
+      .result h3 {
+        margin: 6px 0;
+        font-size: 1.26rem;
+      }
+
+      .result-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .result-stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .site-links,
+      .match-context {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .site-link {
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: rgba(12, 124, 102, 0.07);
+        color: var(--accent-strong);
+        border: 1px solid rgba(12, 124, 102, 0.12);
+        font: 600 0.82rem/1 ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .context-pill {
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: rgba(21, 32, 51, 0.06);
+        color: var(--text);
+        font: 500 0.8rem/1 ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .result p {
+        margin: 0;
+        color: var(--muted);
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        line-height: 1.5;
+      }
+
+      .result-rail {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .source-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .source-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, rgba(12,124,102,0.14), rgba(199,122,50,0.18));
+        color: var(--accent-strong);
+        font: 700 0.9rem/1 ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .url {
+        color: var(--accent);
+        word-break: break-word;
+        font: 600 0.92rem/1.3 ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .meta,
+      .status,
+      .helper {
+        color: var(--muted);
+        font: 500 0.92rem/1.5 ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .explain {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      .pill {
+        padding: 8px 10px;
+        border-radius: 999px;
+        background: rgba(21,32,51,0.06);
+        color: var(--text);
+        font: 500 0.84rem/1 ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .trust-badge {
+        padding: 8px 12px;
+        border-radius: 999px;
+        font: 700 0.8rem/1 ui-sans-serif, system-ui, sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        white-space: nowrap;
+      }
+
+      .trust-high {
+        background: rgba(12, 124, 102, 0.14);
+        color: var(--accent-strong);
+      }
+
+      .trust-good {
+        background: rgba(199, 122, 50, 0.14);
+        color: #8a531f;
+      }
+
+      .trust-review {
+        background: rgba(21, 32, 51, 0.1);
+        color: var(--text);
+      }
+
+      .quality-panel {
+        margin-top: 14px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(12, 124, 102, 0.06);
+        border: 1px solid rgba(12, 124, 102, 0.12);
+      }
+
+      .snapshot-grid,
+      .source-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .insight-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .snapshot-item,
+      .source-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.76);
+        border: 1px solid rgba(21, 32, 51, 0.06);
+        font: 500 0.92rem/1.4 ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .mini-stat {
+        display: grid;
+        gap: 4px;
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(255,255,255,0.76);
+        border: 1px solid rgba(21, 32, 51, 0.06);
+      }
+
+      .mini-stat strong {
+        font: 700 1.3rem/1 ui-sans-serif, system-ui, sans-serif;
+        color: var(--text);
+      }
+
+      .query-operators {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .operator-pill {
+        padding: 7px 11px;
+        border-radius: 999px;
+        background: rgba(12, 124, 102, 0.08);
+        border: 1px solid rgba(12, 124, 102, 0.16);
+        color: var(--accent-strong);
+        font: 600 0.8rem/1 ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .quality-panel ul {
+        margin: 8px 0 0;
+        padding-left: 18px;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .timeline-row {
+        display: grid;
+        grid-template-columns: 92px 1fr 36px;
+        gap: 10px;
+        align-items: center;
+        font: 500 0.88rem/1.3 ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .timeline-bar {
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(21, 32, 51, 0.08);
+        overflow: hidden;
+      }
+
+      .timeline-bar span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--accent), var(--warm));
+      }
+
+      .compare-card {
+        display: grid;
+        gap: 12px;
+      }
+
+      .compare-item {
+        display: grid;
+        gap: 4px;
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(255,255,255,0.78);
+        border: 1px solid rgba(21, 32, 51, 0.06);
+      }
+
+      .explanation-list {
+        margin: 12px 0 0;
+        padding-left: 18px;
+        color: var(--muted);
+        font: 500 0.92rem/1.5 ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 18px;
+      }
+
+      .why-box {
+        margin-top: 12px;
+        border-radius: 16px;
+        border: 1px dashed rgba(21, 32, 51, 0.12);
+        background: rgba(255,255,255,0.62);
+        padding: 12px 14px;
+      }
+
+      .why-box summary {
+        cursor: pointer;
+        font: 600 0.9rem/1.2 ui-sans-serif, system-ui, sans-serif;
+        color: var(--text);
+      }
+
+      mark {
+        padding: 0 0.2em;
+        border-radius: 0.25em;
+        background: rgba(199, 122, 50, 0.22);
+        color: inherit;
+      }
+
+      .jobs li {
+        margin-bottom: 8px;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      @media (max-width: 1080px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .serp-layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
       @media (max-width: 780px) {
-        .row { grid-template-columns: 1fr; }
+        .search-box,
+        .stats,
+        .two-col,
+        .control-cluster,
+        .insight-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .topbar {
+          flex-direction: column;
+          align-items: flex-start;
+        }
       }
     </style>
   </head>
   <body>
-    <main>
+    <div class="shell">
       <section class="hero">
-        <h1>Atlas Search</h1>
-        <p>Google-inspired hybrid search with crawl, ranking, and grounded AI answers.</p>
-
-        <form id="crawl-form">
-          <label for="urls">Seed URLs</label>
-          <textarea id="urls" rows="3" placeholder="One URL per line">https://example.com
-https://go.dev</textarea>
-          <button type="submit">Crawl URLs</button>
-        </form>
-
-        <form id="search-form">
-          <div class="row">
-            <input id="query" type="text" placeholder="Search Atlas..." value="go" />
-            <input id="limit" type="number" min="1" max="20" value="5" />
-            <button type="submit">Search</button>
+        <header class="topbar">
+          <div class="brand">
+            <div class="badge">A</div>
+            <div>
+              <h1>Atlas Search</h1>
+              <p>Google-like retrieval, grounded AI summaries, and ranking signals in one polished workspace.</p>
+            </div>
           </div>
-        </form>
-        <div class="status" id="status"></div>
+          <p class="helper">Hybrid search feel with operators, trust-aware ranking, authority boosts, and a cleaner SERP layout.</p>
+        </header>
+        <div class="hero-notes">
+          <span class="pill">BM25-style relevance</span>
+          <span class="pill">Autocomplete + typo correction</span>
+          <span class="pill">Trusted-source mode</span>
+          <span class="pill">Authority + freshness signals</span>
+          <span class="pill">Grounded answers with citations</span>
+        </div>
       </section>
 
-      <section class="section">
-        <h2>Results</h2>
-        <div id="results"></div>
-      </section>
-    </main>
+      <div class="grid">
+        <aside class="panel sidebar">
+          <section class="card">
+            <div class="eyebrow">Crawl Control</div>
+            <h2>Seed New Sources</h2>
+            <p class="helper">Paste one URL per line and Atlas will crawl and index them immediately.</p>
+            <form id="crawl-form">
+              <textarea id="urls" placeholder="One URL per line">https://example.com
+https://go.dev</textarea>
+              <div class="toolbar">
+                <button type="submit">Crawl Now</button>
+                <button class="ghost" type="button" id="crawl-async">Queue Crawl</button>
+              </div>
+            </form>
+            <div class="status" id="crawl-status"></div>
+          </section>
+
+          <section class="card jobs">
+            <div class="eyebrow">Live Jobs</div>
+            <h3>Async Crawl Monitor</h3>
+            <div class="helper" id="job-status">No crawl jobs yet.</div>
+            <ul id="job-list"></ul>
+          </section>
+
+          <section class="card">
+            <div class="eyebrow">Recrawl Ops</div>
+            <div class="helper" id="recrawl-summary">No stale documents queued.</div>
+            <div class="toolbar" style="margin-top: 12px;">
+              <button class="ghost" type="button" id="recrawl-due">Recrawl Due Docs</button>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="eyebrow">Recent Searches</div>
+            <div class="recent-list" id="recent-searches"></div>
+          </section>
+
+          <section class="card">
+            <div class="eyebrow">Explore</div>
+            <div class="chips" id="explore-chips">
+              <button class="chip" type="button" data-query="go">go</button>
+              <button class="chip" type="button" data-query="search engine">search engine</button>
+              <button class="chip" type="button" data-query="distributed systems">distributed systems</button>
+              <button class="chip" type="button" data-query="kubernetes">kubernetes</button>
+            </div>
+          </section>
+        </aside>
+
+        <section class="panel workspace">
+          <section class="card search-card">
+            <div class="command-deck">
+              <div class="command-meta">
+                <div>
+                  <div class="eyebrow">Search Command Deck</div>
+                  <h2 style="margin: 0;">Search Atlas like a premium engine</h2>
+                </div>
+                <div class="status" id="search-status">Ready.</div>
+              </div>
+              <div class="search-shell">
+                <form id="search-form" autocomplete="off">
+                  <div class="search-box">
+                    <input id="query" type="text" placeholder='Try: site:127.0.0.1 "premium search guide" -ads' value="go" />
+                    <input id="limit" type="number" min="1" max="20" value="5" />
+                    <button type="submit">Search</button>
+                    <button class="ghost" id="lucky-btn" type="button">I'm Feeling Lucky</button>
+                  </div>
+                </form>
+                <div class="suggestions" id="suggestions"></div>
+              </div>
+              <div class="preset-strip" id="preset-strip">
+                <button class="chip preset-active" type="button" data-preset="web">Web</button>
+                <button class="chip" type="button" data-preset="trusted">Trusted</button>
+                <button class="chip" type="button" data-preset="fresh">Fresh</button>
+                <button class="chip" type="button" data-preset="research">Research</button>
+              </div>
+              <div class="control-cluster">
+                <label>Sort
+                  <select id="sort-by">
+                    <option value="relevance">Relevance</option>
+                    <option value="trust">Trust</option>
+                    <option value="recent">Recent</option>
+                  </select>
+                </label>
+                <label>Trust
+                  <select id="trust-filter">
+                    <option value="0">All</option>
+                    <option value="65">Good+</option>
+                    <option value="80">High only</option>
+                  </select>
+                </label>
+                <label>Site
+                  <select id="domain-filter">
+                    <option value="">All</option>
+                  </select>
+                </label>
+                <label>Mode
+                  <select id="trusted-filter">
+                    <option value="0">All sources</option>
+                    <option value="1">Trusted only</option>
+                  </select>
+                </label>
+              </div>
+              <div class="toolbar">
+                <div class="tabs" id="tabs">
+                  <button class="tab active" data-tab="all" type="button">All</button>
+                  <button class="tab" data-tab="answers" type="button">Answers</button>
+                  <button class="tab" data-tab="documents" type="button">Documents</button>
+                </div>
+                <div class="query-operators" id="query-operators"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="stats" id="stats">
+            <article class="stat">
+              <div class="eyebrow">Documents</div>
+              <strong id="stat-docs">0</strong>
+              <span class="helper">Indexed pages</span>
+            </article>
+            <article class="stat">
+              <div class="eyebrow">Results</div>
+              <strong id="stat-results">0</strong>
+              <span class="helper">Matched this query</span>
+            </article>
+            <article class="stat">
+              <div class="eyebrow">Suggestions</div>
+              <strong id="stat-suggestions">0</strong>
+              <span class="helper">Autocomplete ideas</span>
+            </article>
+            <article class="stat">
+              <div class="eyebrow">Trust</div>
+              <strong id="stat-trust">0</strong>
+              <span class="helper" id="stat-trust-label">Average trust</span>
+            </article>
+            <article class="stat">
+              <div class="eyebrow">Recrawl</div>
+              <strong id="stat-stale">0</strong>
+              <span class="helper" id="stat-stale-label">Documents due</span>
+            </article>
+          </section>
+
+          <section class="serp-layout">
+            <div class="main-stack">
+              <section class="card">
+                <div class="eyebrow">Grounded Answer</div>
+                <div id="answer-panel" class="answer">
+                  <strong>Run a search to generate an answer.</strong>
+                  <p class="helper">Atlas will summarize the top snippets when the AI layer is available.</p>
+                </div>
+              </section>
+
+              <section class="card">
+                <div class="toolbar">
+                  <div>
+                    <div class="eyebrow">Results</div>
+                    <h2 style="margin: 0;">Search Results</h2>
+                  </div>
+                </div>
+                <div class="results-stack" id="results"></div>
+              </section>
+            </div>
+
+            <aside class="rail-stack">
+              <section class="card">
+                <div class="eyebrow">Query Intelligence</div>
+                <div class="helper" id="query-summary">Search Atlas to see parsed intent, operators, and search mode.</div>
+                <div class="insight-grid" id="snapshot-grid"></div>
+              </section>
+
+              <section class="card">
+                <div class="eyebrow">Top Sources</div>
+                <div class="helper" id="source-summary">No source clusters yet.</div>
+                <div class="source-list" id="source-list"></div>
+              </section>
+
+              <section class="card">
+                <div class="eyebrow">Freshness Map</div>
+                <div class="timeline" id="timeline"></div>
+              </section>
+
+              <section class="card">
+                <div class="eyebrow">Compare Top Results</div>
+                <div class="helper" id="compare-summary">Search Atlas to compare top-ranked results.</div>
+                <div class="compare-card" id="compare-card"></div>
+              </section>
+
+              <section class="card">
+                <div class="eyebrow">People Also Search</div>
+                <div class="chips" id="related-chips"></div>
+                <p class="helper" id="related-empty">Search Atlas to generate related query ideas.</p>
+              </section>
+
+              <section class="card">
+                <div class="eyebrow">Analytics</div>
+                <div class="helper" id="analytics-summary">No search analytics yet.</div>
+                <ul class="explanation-list" id="analytics-list"></ul>
+              </section>
+            </aside>
+          </section>
+        </section>
+      </div>
+    </div>
 
     <script>
-      const statusEl = document.getElementById("status");
+      const queryInput = document.getElementById("query");
+      const limitInput = document.getElementById("limit");
+      const searchStatus = document.getElementById("search-status");
+      const crawlStatus = document.getElementById("crawl-status");
       const resultsEl = document.getElementById("results");
+      const suggestionsEl = document.getElementById("suggestions");
+      const answerPanel = document.getElementById("answer-panel");
+      const relatedChips = document.getElementById("related-chips");
+      const relatedEmpty = document.getElementById("related-empty");
+      const recentSearchesEl = document.getElementById("recent-searches");
+      const statDocs = document.getElementById("stat-docs");
+      const statResults = document.getElementById("stat-results");
+      const statSuggestions = document.getElementById("stat-suggestions");
+      const statTrust = document.getElementById("stat-trust");
+      const statTrustLabel = document.getElementById("stat-trust-label");
+      const statStale = document.getElementById("stat-stale");
+      const statStaleLabel = document.getElementById("stat-stale-label");
+      const jobStatus = document.getElementById("job-status");
+      const jobList = document.getElementById("job-list");
+      const statDocLabel = document.querySelector("#stat-docs + span");
+      const sortBySelect = document.getElementById("sort-by");
+      const trustFilterSelect = document.getElementById("trust-filter");
+      const domainFilterSelect = document.getElementById("domain-filter");
+      const trustedFilterSelect = document.getElementById("trusted-filter");
+      const analyticsSummary = document.getElementById("analytics-summary");
+      const analyticsList = document.getElementById("analytics-list");
+      const querySummary = document.getElementById("query-summary");
+      const queryOperators = document.getElementById("query-operators");
+      const snapshotGrid = document.getElementById("snapshot-grid");
+      const sourceSummary = document.getElementById("source-summary");
+      const sourceList = document.getElementById("source-list");
+      const timelineEl = document.getElementById("timeline");
+      const compareSummary = document.getElementById("compare-summary");
+      const compareCard = document.getElementById("compare-card");
+      const recrawlSummary = document.getElementById("recrawl-summary");
 
-      function setStatus(message) {
-        statusEl.textContent = message;
+      let currentTab = "all";
+      let currentOffset = 0;
+      let activePreset = "web";
+      const crawlJobs = new Map();
+
+      function escapeHTML(value) {
+        return value.replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;"
+        }[char]));
       }
 
-      function renderSearch(payload) {
-        const parts = [];
-        if (payload.answer) {
-          parts.push(`
-            <div class="answer">
-              <strong>Grounded answer</strong>
-              <p>${payload.answer.summary}</p>
-            </div>
-          `);
-        }
+      function setSearchStatus(message) {
+        searchStatus.textContent = message;
+      }
 
-        if (!payload.results || payload.results.length === 0) {
-          parts.push("<p>No results yet. Crawl a page and search again.</p>");
-          resultsEl.innerHTML = parts.join("");
+      function setCrawlStatus(message) {
+        crawlStatus.textContent = message;
+      }
+
+      function updateRecentSearches(query) {
+        if (!query) return;
+        const previous = JSON.parse(localStorage.getItem("atlas-recent-searches") || "[]");
+        const next = [query, ...previous.filter((item) => item !== query)].slice(0, 8);
+        localStorage.setItem("atlas-recent-searches", JSON.stringify(next));
+        renderRecentSearches();
+      }
+
+      function renderRecentSearches() {
+        const recent = JSON.parse(localStorage.getItem("atlas-recent-searches") || "[]");
+        if (recent.length === 0) {
+          recentSearchesEl.innerHTML = '<span class="helper">No searches yet.</span>';
+          return;
+        }
+        recentSearchesEl.innerHTML = recent
+          .map((item) => `<button class="chip" type="button" data-recent="${escapeHTML(item)}">${escapeHTML(item)}</button>`)
+          .join("");
+      }
+
+      function renderRelatedQueries(payload) {
+        const related = payload.related_queries || [];
+        statSuggestions.textContent = String(related.length);
+        if (related.length === 0) {
+          relatedChips.innerHTML = "";
+          relatedEmpty.style.display = "block";
           return;
         }
 
-        for (const result of payload.results) {
-          parts.push(`
-            <article class="result">
-              <div class="url">${result.url}</div>
-              <h3>${result.title}</h3>
-              <p>${result.snippet}</p>
-              <div class="meta">Score: ${result.score.toFixed(3)}</div>
-            </article>
-          `);
-        }
-        resultsEl.innerHTML = parts.join("");
+        relatedEmpty.style.display = "none";
+        relatedChips.innerHTML = related
+          .map((query) => `<button class="chip" type="button" data-query="${escapeHTML(query)}">${escapeHTML(query)}</button>`)
+          .join("");
       }
+
+      function renderDomainFacets(payload) {
+        const currentValue = payload.domain || domainFilterSelect.value || "";
+        const options = ['<option value="">Site: All</option>']
+          .concat((payload.domains || []).map((facet) => `<option value="${escapeHTML(facet.domain)}">${escapeHTML(facet.domain)} (${facet.count})</option>`));
+        domainFilterSelect.innerHTML = options.join("");
+        domainFilterSelect.value = currentValue;
+      }
+
+      function buildOperatorPills(interpretation, payload) {
+        const pills = [];
+        if (interpretation.site) pills.push(`site:${interpretation.site}`);
+        (interpretation.title_terms || []).forEach((term) => pills.push(`intitle:${term}`));
+        (interpretation.url_terms || []).forEach((term) => pills.push(`inurl:${term}`));
+        (interpretation.file_types || []).forEach((term) => pills.push(`filetype:${term}`));
+        if (interpretation.after) pills.push(`after:${interpretation.after}`);
+        if (interpretation.before) pills.push(`before:${interpretation.before}`);
+        (interpretation.phrases || []).forEach((phrase) => pills.push(`"${phrase}"`));
+        (interpretation.exclude_terms || []).forEach((term) => pills.push(`-${term}`));
+        if (payload.trusted_only) pills.push("trusted-only");
+        if (payload.cached) pills.push("cache hit");
+        if (payload.min_trust > 0) pills.push(`trust ${payload.min_trust}+`);
+        return pills;
+      }
+
+      function renderSnapshot(payload) {
+        const interpretation = payload.interpretation || {};
+        const pills = buildOperatorPills(interpretation, payload);
+        querySummary.textContent = `${(interpretation.intent || "exploration").replace(/^\w/, (char) => char.toUpperCase())} intent · ${payload.cached ? "served from cache" : "fresh ranking"} · ${payload.took_ms || 0} ms.`;
+        queryOperators.innerHTML = pills.length
+          ? pills.map((item) => `<span class="operator-pill">${escapeHTML(item)}</span>`).join("")
+          : '<span class="helper">No advanced operators active.</span>';
+        snapshotGrid.innerHTML = [
+          ["Query", payload.corrected_query || payload.normalized_query || payload.query || "n/a"],
+          ["Mode", activePreset],
+          ["Results", String(payload.count || 0)],
+          ["Trust", payload.quality?.top_trust_level || "review"]
+        ].map(([label, value]) => `
+          <div class="mini-stat">
+            <span class="helper">${escapeHTML(label)}</span>
+            <strong>${escapeHTML(value)}</strong>
+          </div>
+        `).join("");
+      }
+
+      function renderTimeline(payload) {
+        const timeline = payload.timeline || [];
+        if (timeline.length === 0) {
+          timelineEl.innerHTML = '<p class="helper">No freshness map yet.</p>';
+          return;
+        }
+        const maxCount = Math.max(...timeline.map((item) => item.count), 1);
+        timelineEl.innerHTML = timeline.map((item) => `
+          <div class="timeline-row">
+            <span>${escapeHTML(item.label)}</span>
+            <div class="timeline-bar"><span style="width:${(item.count / maxCount) * 100}%"></span></div>
+            <strong>${escapeHTML(String(item.count))}</strong>
+          </div>
+        `).join("");
+      }
+
+      function renderCompare(payload) {
+        if (!payload.compare || !(payload.compare.items || []).length) {
+          compareSummary.textContent = "Search Atlas to compare top-ranked results.";
+          compareCard.innerHTML = "";
+          return;
+        }
+        compareSummary.textContent = payload.compare.summary;
+        compareCard.innerHTML = payload.compare.items.map((item) => `
+          <div class="compare-item">
+            <strong>${escapeHTML(item.title)}</strong>
+            <span class="helper">${escapeHTML(item.domain)} · ${escapeHTML(item.strength)}</span>
+            <span class="helper">Trust ${escapeHTML(String(item.trust))} · ${escapeHTML(item.freshness)}</span>
+          </div>
+        `).join("");
+      }
+
+      function applyPreset(preset) {
+        activePreset = preset;
+        document.querySelectorAll("[data-preset]").forEach((item) => {
+          item.classList.toggle("preset-active", item.dataset.preset === preset);
+        });
+        if (preset === "trusted") {
+          trustedFilterSelect.value = "1";
+          sortBySelect.value = "trust";
+          trustFilterSelect.value = "80";
+        } else if (preset === "fresh") {
+          trustedFilterSelect.value = "0";
+          sortBySelect.value = "recent";
+          trustFilterSelect.value = "65";
+        } else if (preset === "research") {
+          trustedFilterSelect.value = "0";
+          sortBySelect.value = "relevance";
+          trustFilterSelect.value = "65";
+        } else {
+          trustedFilterSelect.value = "0";
+          sortBySelect.value = "relevance";
+          trustFilterSelect.value = "0";
+        }
+      }
+
+      function clearPresetSelection() {
+        activePreset = "custom";
+        document.querySelectorAll("[data-preset]").forEach((item) => {
+          item.classList.remove("preset-active");
+        });
+      }
+
+      function renderSourceSpotlight(payload) {
+        const coverage = payload.coverage || [];
+        if (coverage.length === 0) {
+          sourceSummary.textContent = "No source clusters yet.";
+          sourceList.innerHTML = "";
+          return;
+        }
+        sourceSummary.textContent = `${coverage.length} source cluster(s) found for this query.`;
+        sourceList.innerHTML = coverage.slice(0, 5).map((facet) => `
+          <div class="source-item">
+            <div>
+              <strong>${escapeHTML(facet.domain)}</strong>
+              <div class="helper">${escapeHTML(facet.best_title || "Top result")}</div>
+            </div>
+            <span>${escapeHTML(String(facet.count))} · trust ${escapeHTML(String(facet.avg_trust || 0))}</span>
+          </div>
+        `).join("");
+      }
+
+      function highlightSnippet(snippet, interpretation) {
+        if (!snippet) return "";
+        let highlighted = escapeHTML(snippet);
+        const tokens = []
+          .concat(interpretation?.phrases || [])
+          .concat(interpretation?.terms || [])
+          .filter(Boolean)
+          .sort((a, b) => b.length - a.length);
+        for (const token of tokens) {
+          const safe = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          highlighted = highlighted.replace(new RegExp(`(${safe})`, "ig"), "<mark>$1</mark>");
+        }
+        return highlighted;
+      }
+
+      function renderAnswer(payload) {
+        if (!payload.answer || currentTab === "documents") {
+          answerPanel.innerHTML = `
+            <strong>No featured answer for this view.</strong>
+            <p class="helper">Switch to All or Answers after a search to see the grounded summary.</p>
+          `;
+          return;
+        }
+
+        const grounded = (payload.answer.grounded_points || [])
+          .slice(0, 3)
+          .map((point) => `<li>${escapeHTML(point)}</li>`)
+          .join("");
+
+        answerPanel.innerHTML = `
+          <strong>Featured answer</strong>
+          <p>${escapeHTML(payload.answer.summary)}</p>
+          ${grounded ? `<ul>${grounded}</ul>` : ""}
+          ${(payload.answer.citations || []).length ? `<p class="helper" style="margin-top: 12px;">Sources: ${payload.answer.citations.map((item) => `<a href="${escapeHTML(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(item.title)}</a>`).join(" · ")}</p>` : ""}
+          ${(payload.answer.related_questions || []).length ? `<ul class="explanation-list">${payload.answer.related_questions.map((item) => `<li>${escapeHTML(item)}</li>`).join("")}</ul>` : ""}
+        `;
+      }
+
+      function renderResults(payload) {
+        const showAnswer = currentTab !== "documents";
+        const showDocuments = currentTab !== "answers";
+
+        renderSnapshot(payload);
+        renderAnswer(showAnswer ? payload : { answer: null });
+        renderRelatedQueries(payload);
+        renderDomainFacets(payload);
+        renderSourceSpotlight(payload);
+        renderTimeline(payload);
+        renderCompare(payload);
+        statResults.textContent = String(payload.count || 0);
+        statTrust.textContent = String(payload.quality?.average_trust || 0);
+        statTrustLabel.textContent = `${payload.quality?.trusted_results || 0} trusted · ${payload.quality?.needs_review || 0} review`;
+
+        if (!showDocuments) {
+          resultsEl.innerHTML = `<p class="helper">Document results are hidden in Answers view.</p>`;
+          return;
+        }
+
+        if (!payload.results || payload.results.length === 0) {
+          resultsEl.innerHTML = `<p class="helper">No results yet. Crawl a page and search again.</p>`;
+          return;
+        }
+
+        const qualityHighlights = (payload.quality?.highlights || [])
+          .map((item) => `<li>${escapeHTML(item)}</li>`)
+          .join("");
+
+        resultsEl.innerHTML = payload.results.map((result) => `
+          <article class="result">
+            <div class="result-stack">
+              <div class="result-rail">
+                <div class="source-badge">
+                  <span class="source-avatar">${escapeHTML((result.domain || result.title || "?").slice(0, 1).toUpperCase())}</span>
+                  <div>
+                    <div class="url">${escapeHTML(result.domain || result.url)}</div>
+                    <div class="helper">${escapeHTML(result.url)}</div>
+                  </div>
+                </div>
+                <span class="trust-badge trust-${escapeHTML(result.trust.level)}">${escapeHTML(result.trust.level)} trust ${escapeHTML(String(result.trust.value))}</span>
+              </div>
+              <div class="result-head">
+                <h3>${escapeHTML(result.title)}</h3>
+                <span class="helper">${[result.file_type ? result.file_type.toUpperCase() : "", result.crawled_at ? `Crawled ${new Date(result.crawled_at).toLocaleDateString()}` : ""].filter(Boolean).join(" · ")}</span>
+              </div>
+              <p>${highlightSnippet(result.snippet, payload.interpretation)}</p>
+              ${(result.site_links || []).length ? `<div class="site-links">${result.site_links.map((item) => `<span class="site-link">${escapeHTML(item)}</span>`).join("")}</div>` : ""}
+              ${(result.match_context || []).length ? `<div class="match-context">${result.match_context.map((item) => `<span class="context-pill">${escapeHTML(item)}</span>`).join("")}</div>` : ""}
+              <div class="explain">
+                <span class="pill">Score ${result.score.toFixed(3)}</span>
+                <span class="pill">Authority +${(result.signals.authority_boost || 0).toFixed(2)}</span>
+                <span class="pill">Heading +${(result.signals.heading_match_boost || 0).toFixed(2)}</span>
+                <span class="pill">Title +${result.signals.title_match_boost.toFixed(2)}</span>
+                <span class="pill">Phrase +${result.signals.exact_phrase_boost.toFixed(2)}</span>
+                <span class="pill">Freshness +${(result.signals.freshness_boost || 0).toFixed(2)}</span>
+              </div>
+              <p class="helper">Trust signal: ${escapeHTML(result.trust.reason)}</p>
+              <p class="helper">${result.recrawl_after ? `Recommended recrawl ${new Date(result.recrawl_after).toLocaleDateString()}` : ""}</p>
+              <details class="why-box">
+                <summary>Why this result?</summary>
+                ${(result.explanations || []).length ? `<ul class="explanation-list">${result.explanations.map((item) => `<li><strong>${escapeHTML(item.label)}:</strong> ${escapeHTML(item.value)}</li>`).join("")}</ul>` : '<p class="helper">No explanation signals available.</p>'}
+              </details>
+            </div>
+          </article>
+        `).join("") + `
+          <section class="quality-panel">
+            <strong>Query quality</strong>
+            <p class="helper">Top trust level: ${escapeHTML(payload.quality?.top_trust_level || "review")} · Average trust ${escapeHTML(String(payload.quality?.average_trust || 0))}</p>
+            ${qualityHighlights ? `<ul>${qualityHighlights}</ul>` : ""}
+          </section>
+          <div class="pager">
+            <button class="ghost" type="button" id="prev-page" ${payload.offset <= 0 ? "disabled" : ""}>Previous</button>
+            <button class="ghost" type="button" id="next-page" ${!payload.has_more ? "disabled" : ""}>Next</button>
+          </div>
+        `;
+      }
+
+      async function refreshStats() {
+        const response = await fetch("/healthz");
+        const payload = await response.json();
+        statDocs.textContent = String(payload.stats?.documents || 0);
+        const termCount = payload.stats?.terms || 0;
+        const phraseCount = payload.stats?.phrases || 0;
+        const deduped = payload.stats?.deduplicated_urls || 0;
+        const stale = payload.stats?.stale_documents || 0;
+        statDocLabel.textContent = `${termCount} terms, ${phraseCount} phrases, ${deduped} deduped`;
+        statStale.textContent = String(stale);
+        statStaleLabel.textContent = stale ? "Need recrawl soon" : "Fresh corpus";
+      }
+
+      async function refreshAnalytics() {
+        const response = await fetch("/api/v1/analytics");
+        const payload = await response.json();
+        analyticsSummary.textContent = `${payload.total_queries || 0} queries · ${(Number(payload.cache_hit_rate || 0) * 100).toFixed(0)}% cache hit · ${Number(payload.average_ms || 0).toFixed(1)} ms avg · ${Math.round(Number(payload.uptime_seconds || 0) / 60)} min uptime`;
+        const topQueries = payload.top_queries || [];
+        if (topQueries.length === 0) {
+          analyticsList.innerHTML = "";
+          return;
+        }
+        analyticsList.innerHTML = topQueries
+          .map((item) => `<li><strong>${escapeHTML(item.query)}</strong>: ${escapeHTML(String(item.count))}</li>`)
+          .join("");
+      }
+
+      async function refreshRecrawlSummary() {
+        const response = await fetch("/api/v1/crawl/stale?limit=5");
+        const payload = await response.json();
+        const documents = payload.documents || [];
+        if (documents.length === 0) {
+          recrawlSummary.textContent = "No stale documents queued.";
+          return;
+        }
+        recrawlSummary.textContent = `${documents.length} stale document(s) ready for recrawl. Oldest: ${documents[0].title || documents[0].url}`;
+      }
+
+      async function fetchSuggestions() {
+        const query = queryInput.value.trim();
+        if (query.length < 2) {
+          suggestionsEl.classList.remove("visible");
+          suggestionsEl.innerHTML = "";
+          return;
+        }
+
+        const response = await fetch(`/api/v1/suggest?q=${encodeURIComponent(query)}&limit=6`);
+        const payload = await response.json();
+        const suggestions = payload.suggestions || [];
+        statSuggestions.textContent = String(suggestions.length);
+
+        if (suggestions.length === 0) {
+          suggestionsEl.classList.remove("visible");
+          suggestionsEl.innerHTML = "";
+          return;
+        }
+
+        suggestionsEl.innerHTML = suggestions
+          .map((suggestion) => `<button class="suggestion" type="button" data-suggestion="${escapeHTML(suggestion)}">${escapeHTML(suggestion)}</button>`)
+          .join("");
+        suggestionsEl.classList.add("visible");
+      }
+
+      async function runSearch(useLucky = false) {
+        const query = queryInput.value.trim();
+        const limit = Number(limitInput.value || "5");
+        const sortBy = sortBySelect.value;
+        const minTrust = Number(trustFilterSelect.value || "0");
+        const domain = domainFilterSelect.value;
+        const trustedOnly = trustedFilterSelect.value === "1";
+        if (!query) return;
+
+        setSearchStatus(`Searching for "${query}"...`);
+        const response = await fetch(`/api/v1/search?q=${encodeURIComponent(query)}&limit=${encodeURIComponent(limit)}&sort=${encodeURIComponent(sortBy)}&min_trust=${encodeURIComponent(minTrust)}&domain=${encodeURIComponent(domain)}&trusted_only=${encodeURIComponent(trustedOnly ? "1" : "0")}&offset=${encodeURIComponent(currentOffset)}`);
+        const payload = await response.json();
+        renderResults(payload);
+        updateRecentSearches(query);
+        await refreshAnalytics();
+        setSearchStatus(`${payload.corrected_query ? `Showing results for "${payload.corrected_query}". ` : ""}${payload.count || 0} result(s) · ${payload.interpretation?.intent || "exploration"} intent · ${payload.cached ? "cache hit" : "fresh fetch"} · ${payload.took_ms || 0} ms.`);
+
+        if (useLucky && payload.results && payload.results[0]) {
+          window.open(payload.results[0].url, "_blank", "noopener,noreferrer");
+        }
+      }
+
+      function renderJobs() {
+        const jobs = Array.from(crawlJobs.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        if (jobs.length === 0) {
+          jobStatus.textContent = "No crawl jobs yet.";
+          jobList.innerHTML = "";
+          return;
+        }
+
+        jobStatus.textContent = `${jobs.length} tracked crawl job(s).`;
+        jobList.innerHTML = jobs.slice(0, 6).map((job) => `
+          <li>
+            <span class="mono">${job.id}</span>
+            <strong> ${job.status}</strong>
+            <span class="helper"> · ${job.response?.documents?.length || 0} docs</span>
+          </li>
+        `).join("");
+      }
+
+      async function pollJob(jobID) {
+        const response = await fetch(`/api/v1/crawl/jobs/${encodeURIComponent(jobID)}`);
+        const payload = await response.json();
+        crawlJobs.set(jobID, payload);
+        renderJobs();
+        if (payload.status === "queued" || payload.status === "running") {
+          setTimeout(() => pollJob(jobID), 1200);
+          return;
+        }
+        await refreshStats();
+        await refreshAnalytics();
+        await refreshRecrawlSummary();
+        setCrawlStatus(`Job ${jobID} finished with status ${payload.status}. Discovered ${payload.response?.discovered?.length || 0} URL(s) and deduped ${payload.response?.duplicates?.length || 0}.`);
+      }
+
+      document.getElementById("search-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        suggestionsEl.classList.remove("visible");
+        currentOffset = 0;
+        await runSearch(false);
+      });
+
+      document.getElementById("lucky-btn").addEventListener("click", async () => {
+        suggestionsEl.classList.remove("visible");
+        await runSearch(true);
+      });
 
       document.getElementById("crawl-form").addEventListener("submit", async (event) => {
         event.preventDefault();
-        const urls = document.getElementById("urls").value
-          .split("\n")
-          .map((value) => value.trim())
-          .filter(Boolean);
-
-        setStatus("Crawling pages...");
+        const urls = document.getElementById("urls").value.split("\n").map((value) => value.trim()).filter(Boolean);
+        setCrawlStatus("Crawling pages now...");
         const response = await fetch("/api/v1/crawl", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ urls })
         });
         const payload = await response.json();
-        setStatus(`Crawled ${payload.documents?.length || 0} page(s).`);
+        setCrawlStatus(`Crawled ${payload.documents?.length || 0} page(s), discovered ${payload.discovered?.length || 0}, deduped ${payload.duplicates?.length || 0}.`);
+        await refreshStats();
+        await refreshAnalytics();
+        await refreshRecrawlSummary();
       });
 
-      document.getElementById("search-form").addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const query = document.getElementById("query").value.trim();
-        const limit = document.getElementById("limit").value || "5";
-
-        setStatus(`Searching for "${query}"...`);
-        const response = await fetch(`/api/v1/search?q=${encodeURIComponent(query)}&limit=${encodeURIComponent(limit)}`);
+      document.getElementById("crawl-async").addEventListener("click", async () => {
+        const urls = document.getElementById("urls").value.split("\n").map((value) => value.trim()).filter(Boolean);
+        setCrawlStatus("Queueing crawl job...");
+        const response = await fetch("/api/v1/crawl/jobs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ urls })
+        });
         const payload = await response.json();
-        renderSearch(payload);
-        setStatus(`Found ${payload.count || 0} result(s).`);
+        if (!payload.id) {
+          setCrawlStatus(payload.error || "Failed to queue crawl job.");
+          return;
+        }
+        crawlJobs.set(payload.id, payload);
+        renderJobs();
+        setCrawlStatus(`Queued ${payload.id}.`);
+        pollJob(payload.id);
       });
+
+      document.getElementById("recrawl-due").addEventListener("click", async () => {
+        setCrawlStatus("Queueing stale documents for recrawl...");
+        const response = await fetch("/api/v1/crawl/stale?limit=10", { method: "POST" });
+        const payload = await response.json();
+        if (payload.status === "noop") {
+          setCrawlStatus("No stale documents need recrawl right now.");
+          await refreshRecrawlSummary();
+          return;
+        }
+        if (!payload.id) {
+          setCrawlStatus(payload.error || "Failed to queue stale recrawl.");
+          return;
+        }
+        crawlJobs.set(payload.id, payload);
+        renderJobs();
+        setCrawlStatus(`Queued stale recrawl ${payload.id}.`);
+        pollJob(payload.id);
+      });
+
+      document.body.addEventListener("click", async (event) => {
+        const suggestion = event.target.closest("[data-suggestion]");
+        if (suggestion) {
+          queryInput.value = suggestion.dataset.suggestion;
+          suggestionsEl.classList.remove("visible");
+          currentOffset = 0;
+          await runSearch(false);
+          return;
+        }
+
+        const queryTarget = event.target.closest("[data-query]");
+        if (queryTarget) {
+          queryInput.value = queryTarget.dataset.query;
+          currentOffset = 0;
+          await runSearch(false);
+          return;
+        }
+
+        const recentTarget = event.target.closest("[data-recent]");
+        if (recentTarget) {
+          queryInput.value = recentTarget.dataset.recent;
+          currentOffset = 0;
+          await runSearch(false);
+          return;
+        }
+
+        const tab = event.target.closest("[data-tab]");
+        if (tab) {
+          currentTab = tab.dataset.tab;
+          document.querySelectorAll(".tab").forEach((item) => item.classList.toggle("active", item === tab));
+          await runSearch(false);
+          return;
+        }
+
+        const preset = event.target.closest("[data-preset]");
+        if (preset) {
+          applyPreset(preset.dataset.preset);
+          currentOffset = 0;
+          await runSearch(false);
+          return;
+        }
+
+        if (event.target.id === "prev-page") {
+          currentOffset = Math.max(0, currentOffset - Number(limitInput.value || "5"));
+          await runSearch(false);
+          return;
+        }
+
+        if (event.target.id === "next-page") {
+          currentOffset += Number(limitInput.value || "5");
+          await runSearch(false);
+        }
+      });
+
+      queryInput.addEventListener("input", fetchSuggestions);
+      queryInput.addEventListener("focus", fetchSuggestions);
+      sortBySelect.addEventListener("change", async () => {
+        clearPresetSelection();
+        currentOffset = 0;
+        await runSearch(false);
+      });
+      trustFilterSelect.addEventListener("change", async () => {
+        clearPresetSelection();
+        currentOffset = 0;
+        await runSearch(false);
+      });
+      domainFilterSelect.addEventListener("change", async () => {
+        clearPresetSelection();
+        currentOffset = 0;
+        await runSearch(false);
+      });
+      trustedFilterSelect.addEventListener("change", async () => {
+        clearPresetSelection();
+        currentOffset = 0;
+        await runSearch(false);
+      });
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest(".search-shell")) {
+          suggestionsEl.classList.remove("visible");
+        }
+      });
+
+      renderRecentSearches();
+      applyPreset("web");
+      refreshStats();
+      refreshAnalytics();
+      refreshRecrawlSummary();
+      runSearch(false);
     </script>
   </body>
 </html>
